@@ -1,0 +1,61 @@
+---
+title: 'Prediction Assignment Writeup: Course Project: Practical Machine Learning'
+author: "Arpit Saini"
+date: "2022-10-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Required Packages
+```{r package, warning=FALSE, message=FALSE}
+library(AppliedPredictiveModeling)
+library(caret)
+library(dplyr)
+library(randomForest)
+```
+
+
+## Reading Raw Data
+```{r file, warning=FALSE, message=FALSE}
+urlTrain <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+urlTest <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+
+download.file(urlTrain, destfile =  "./pml-training.csv")
+download.file(urlTest, destfile =  "./pml-testing.csv")
+
+training <- read.csv("pml-training.csv", na.strings=c("", "NA"))
+testing <- read.csv("pml-testing.csv", na.strings=c("", "NA"))
+unique(training$classe)
+  
+```
+
+## Data Analysis
+```{r clean}
+ncol(training)
+str(training[,1:10])
+str(training[,149:160])
+table(training$classe,training$user_name)
+ggplot(training, aes(classe)) + geom_bar(fill = "steelblue") + ggtitle("Counts per classe")
+```
+
+
+## Data pre-processing
+```{r train, cache=TRUE}
+training$classe <- as.factor(training$classe) # classe is converted into a factor variable.
+
+trainingPrep <- training %>% select(8:160) # Non-predictors are removed.
+
+trainingPrep <- trainingPrep %>% select_if(colSums(is.na(trainingPrep)) < 19000) # Only the columns with LESS than 19000 NAs are left (total nr. of obs. is 19622)
+
+ncol(trainingPrep) # The resulting amount of columns in the dataset is 53.
+```
+
+## Create Data Partition
+```{r validating, warning=FALSE, message=FALSE}
+inTrain = createDataPartition(trainingPrep$classe, p = 3/4)[[1]]
+trainPart = trainingPrep[ inTrain,]
+testPart = trainingPrep[-inTrain,]
+```
